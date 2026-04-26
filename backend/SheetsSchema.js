@@ -2,12 +2,25 @@
  * Spreadsheet schema bootstrap for Yevs News backend.
  */
 
+function getSheetNames() {
+  if (typeof SHEET_NAMES !== 'undefined' && SHEET_NAMES) {
+    return SHEET_NAMES;
+  }
+  throw new Error(
+    'SHEET_NAMES is not defined. Ensure Utils.gs is included in this Apps Script project and has no syntax errors.'
+  );
+}
+
 const SCHEMA_HEADERS = Object.freeze({
-  [SHEET_NAMES.TICKERS]: ['ticker', 'company', 'keywords'],
-  [SHEET_NAMES.TOPICS]: ['topic', 'keywords'],
-  [SHEET_NAMES.SOURCES]: ['name', 'type', 'value', 'extra'],
-  [SHEET_NAMES.SUMMARIES]: ['kind', 'value', 'bullets_json', 'top_links_json', 'itemsCount', 'updatedAt'],
+  Tickers: ['ticker', 'company', 'keywords'],
+  Topics: ['topic', 'keywords'],
+  Sources: ['name', 'type', 'value', 'extra'],
+  Summaries: ['kind', 'value', 'bullets_json', 'top_links_json', 'itemsCount', 'updatedAt'],
 });
+
+function getSchemaHeaders() {
+  return SCHEMA_HEADERS;
+}
 
 const DEFAULT_SOURCES = Object.freeze([
   ['Google News RSS RU', 'rss', 'https://news.google.com/rss?hl=ru&gl=KZ&ceid=KZ:ru', ''],
@@ -58,17 +71,19 @@ function debugConfig() {
  * Idempotent: repeated runs do not duplicate data.
  */
 function setupSpreadsheet() {
+  var names = getSheetNames();
+  var headers = getSchemaHeaders();
   const ss = openConfiguredSpreadsheet();
 
-  const tickersSheet = ensureSheet(ss, SHEET_NAMES.TICKERS);
-  const topicsSheet = ensureSheet(ss, SHEET_NAMES.TOPICS);
-  const sourcesSheet = ensureSheet(ss, SHEET_NAMES.SOURCES);
-  const summariesSheet = ensureSheet(ss, SHEET_NAMES.SUMMARIES);
+  const tickersSheet = ensureSheet(ss, names.TICKERS);
+  const topicsSheet = ensureSheet(ss, names.TOPICS);
+  const sourcesSheet = ensureSheet(ss, names.SOURCES);
+  const summariesSheet = ensureSheet(ss, names.SUMMARIES);
 
-  applyHeaderFormatting(tickersSheet, SCHEMA_HEADERS[SHEET_NAMES.TICKERS]);
-  applyHeaderFormatting(topicsSheet, SCHEMA_HEADERS[SHEET_NAMES.TOPICS]);
-  applyHeaderFormatting(sourcesSheet, SCHEMA_HEADERS[SHEET_NAMES.SOURCES]);
-  applyHeaderFormatting(summariesSheet, SCHEMA_HEADERS[SHEET_NAMES.SUMMARIES]);
+  applyHeaderFormatting(tickersSheet, headers[names.TICKERS]);
+  applyHeaderFormatting(topicsSheet, headers[names.TOPICS]);
+  applyHeaderFormatting(sourcesSheet, headers[names.SOURCES]);
+  applyHeaderFormatting(summariesSheet, headers[names.SUMMARIES]);
 
   appendRowsIfEmpty(sourcesSheet, DEFAULT_SOURCES);
 
@@ -79,12 +94,14 @@ function setupSpreadsheet() {
  * Seeds sample preferences only if target sheets have no data.
  */
 function seedExamplePreferences() {
+  var names = getSheetNames();
+  var headers = getSchemaHeaders();
   const ss = openConfiguredSpreadsheet();
-  const tickersSheet = ensureSheet(ss, SHEET_NAMES.TICKERS);
-  const topicsSheet = ensureSheet(ss, SHEET_NAMES.TOPICS);
+  const tickersSheet = ensureSheet(ss, names.TICKERS);
+  const topicsSheet = ensureSheet(ss, names.TOPICS);
 
-  applyHeaderFormatting(tickersSheet, SCHEMA_HEADERS[SHEET_NAMES.TICKERS]);
-  applyHeaderFormatting(topicsSheet, SCHEMA_HEADERS[SHEET_NAMES.TOPICS]);
+  applyHeaderFormatting(tickersSheet, headers[names.TICKERS]);
+  applyHeaderFormatting(topicsSheet, headers[names.TOPICS]);
 
   appendRowsIfEmpty(tickersSheet, [
     ['NVDA', 'NVIDIA Corporation', 'nvidia, ai chips, datacenter'],
@@ -105,12 +122,14 @@ function seedExamplePreferences() {
  * Logs the current schema status: sheets + current header row.
  */
 function debugPrintSchema() {
+  var names = getSheetNames();
+  var headers = getSchemaHeaders();
   const ss = openConfiguredSpreadsheet();
   const required = [
-    SHEET_NAMES.TICKERS,
-    SHEET_NAMES.TOPICS,
-    SHEET_NAMES.SOURCES,
-    SHEET_NAMES.SUMMARIES,
+    names.TICKERS,
+    names.TOPICS,
+    names.SOURCES,
+    names.SUMMARIES,
   ];
 
   required.forEach((name) => {
@@ -120,11 +139,11 @@ function debugPrintSchema() {
       return;
     }
 
-    const width = Math.max(sheet.getLastColumn(), SCHEMA_HEADERS[name].length);
-    const headers = sheet.getRange(1, 1, 1, width).getDisplayValues()[0]
+    const width = Math.max(sheet.getLastColumn(), headers[name].length);
+    const rowHeaders = sheet.getRange(1, 1, 1, width).getDisplayValues()[0]
       .map((v) => safeTrim(v))
       .filter((v) => v !== '');
 
-    Logger.log('[OK] %s | headers=%s | rows=%s', name, JSON.stringify(headers), sheet.getLastRow());
+    Logger.log('[OK] %s | headers=%s | rows=%s', name, JSON.stringify(rowHeaders), sheet.getLastRow());
   });
 }
